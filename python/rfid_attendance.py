@@ -21,7 +21,6 @@ while True:
 
         conn.commit()
         conn.close()
-
         print(f"Attendance Marked for {name}")
 
     else:
