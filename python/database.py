@@ -1,12 +1,11 @@
-# database.py
 import sqlite3
 import os
 from datetime import datetime
 from students import REGISTERED_USERS
 
-# ── Path to database file ─────────────────────────────────────
+# Path to database file 
 # os.path makes this work regardless of which folder you run
-# the script from — no more "file not found" errors
+# the script from no more "file not found" errors
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "../data/attendance.db")
 
