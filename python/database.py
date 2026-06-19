@@ -6,8 +6,8 @@ from students import REGISTERED_USERS
 # Path to database file 
 # os.path makes this work regardless of which folder you run
 # the script from no more "file not found" errors
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(BASE_DIR, "../data/attendance.db")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__)) #C:\Users\LENOVO\innovista\python
+DB_PATH = os.path.join(BASE_DIR, "../data/attendance.db") #C:\Users\LENOVO\innovista\python ../data/attendance.db
 
 # Create tables on first run 
 
