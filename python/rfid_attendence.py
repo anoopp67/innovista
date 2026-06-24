@@ -1,66 +1,56 @@
 # rfid_attendance.py
 import serial
+import sqlite3
 import time
-from database import init_database, log_attendance
-from students import REGISTERED_USERS
+import os
+DB_PATH = os.path.join(os.path.dirname(__file__), "../data/attendance.db")
+from database import init_database, log_attendance, get_registered_user
 
-# ── Configuration ─────────────────────────────────────────────
-# Change SERIAL_PORT to match your machine (see table below)
-SERIAL_PORT = "/dev/ttyUSB0"   # Windows: "COM3"  Mac: "/dev/tty.usbmodem..."
+SERIAL_PORT = "COM3"   
 BAUD_RATE = 9600
-
-# ── Helper: find your serial port ────────────────────────────
-# Windows → open Device Manager → Ports → look for Arduino
-# Mac     → open Terminal → run: ls /dev/tty.usb*
-# Linux   → open Terminal → run: ls /dev/ttyUSB*
-
-# ── Main loop ─────────────────────────────────────────────────
 
 
 def run():
-    init_database()       # Create tables + sync students on startup
+    init_database()
 
     print("[INFO] Opening serial port...")
     try:
         ser = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=1)
-        time.sleep(2)     # Wait for Arduino to reset after connecting
+        time.sleep(2)
         print("[INFO] Connected. Waiting for card scans...\n")
     except serial.SerialException as e:
         print(f"[ERROR] Cannot open port {SERIAL_PORT}: {e}")
-        print("[TIP]  Check your SERIAL_PORT value at the top of this file.")
         return
 
     while True:
         try:
             if ser.in_waiting > 0:
-                raw = ser.readline().decode("utf-8").strip()
+                uid = ser.readline().decode("utf-8").strip()
 
-                if not raw:
+                if not uid:
                     continue
 
-                print(f"[SCAN] Card detected: {raw}")
+                print(f"[SCAN] UID received: {uid}")
 
-                # ── Check 1: Is this card registered? ─────────
-                if raw not in REGISTERED_USERS:
-                    print(f"  ✗   Not in students.py — unknown card")
+                # ── Check if UID is registered in database ────
+                user = get_registered_user(uid)
+
+                if not user:
+                    print(f"  ✗   Unknown card — not registered")
                     print(f"  →   Sending FAIL to Arduino\n")
                     ser.write(b"FAIL\n")
                     continue
 
-                user = REGISTERED_USERS[raw]
                 print(f"  ✓   Matched: {user['name']} ({user['id']})")
 
-                # ── Check 2: Already marked today? ────────────
                 result = log_attendance(user["id"], user["name"])
 
                 if result == "logged":
-                    print(f"  ✅  Saved to database")
-                    print(f"  →   Sending OK to Arduino (green LED)\n")
-
+                    print(f"  ✅  Attendance saved for {user['name']}")
                 elif result == "duplicate":
-                    print(f"  ⚠   Already marked today — skipping duplicate")
-                    print(f"  →   Sending OK to Arduino (green LED)\n")
+                    print(f"  ⚠   Already marked today: {user['name']}")
 
+                print(f"  →   Sending OK to Arduino (green LED)\n")
                 ser.write(b"OK\n")
 
             time.sleep(0.1)
@@ -71,7 +61,7 @@ def run():
             break
 
         except Exception as e:
-            print(f"[ERROR] Unexpected error: {e}")
+            print(f"[ERROR] {e}")
             time.sleep(1)
 
 
